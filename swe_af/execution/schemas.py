@@ -439,6 +439,13 @@ class CodeReviewResult(BaseModel):
     iteration_id: str = ""
 
 
+class IssueComplexityGate(BaseModel):
+    """Fast .ai() gate to classify issue complexity at runtime."""
+    complexity: str  # "trivial" | "standard" | "complex"
+    needs_qa: bool
+    confident: bool
+
+
 class QASynthesisAction(str, Enum):
     """Decision from the feedback synthesizer."""
 
@@ -480,6 +487,7 @@ ROLE_TO_MODEL_FIELD: dict[str, str] = {
     "merger": "merger_model",
     "integration_tester": "integration_tester_model",
     "ci_fixer": "ci_fixer_model",
+    "issue_complexity_gate": "issue_complexity_gate_model",
 }
 
 MODEL_ROLE_KEYS: list[str] = list(ROLE_TO_MODEL_FIELD)
@@ -507,6 +515,7 @@ _RUNTIME_BASE_MODELS: dict[str, dict[str, str]] = {
     "claude_code": {
         **{field: "sonnet" for field in ALL_MODEL_FIELDS},
         "qa_synthesizer_model": "haiku",
+        "issue_complexity_gate_model": "haiku",
     },
     "open_code": {
         **{field: "openrouter/minimax/minimax-m2.5" for field in ALL_MODEL_FIELDS},
@@ -1109,3 +1118,7 @@ class ExecutionConfig(BaseModel):
     @property
     def ci_fixer_model(self) -> str:
         return self._model_for("ci_fixer_model")
+
+    @property
+    def issue_complexity_gate_model(self) -> str:
+        return self._model_for("issue_complexity_gate_model")
