@@ -125,6 +125,44 @@ def _bedrock_boot_selftest() -> None:
         print(f"[boot-selftest] error: {type(exc).__name__}: {exc}", flush=True)
 
 
+def _clean_workspaces_at_boot() -> None:
+    """TEMPORARY ops hook: wipe leftover scratch workspaces under /workspaces
+    at boot when SWE_BOOT_CLEAN_WORKSPACES=1. Build workspaces are ephemeral
+    per-run clones; stale ones from failed runs fill the volume and break
+    subsequent clones with ENOSPC. Logs freed space. Remove once a proper
+    workspace reaper exists upstream.
+    """
+    import shutil  # noqa: PLC0415
+
+    root = os.getenv("SWE_WORKSPACES_ROOT", "/workspaces")
+    try:
+        before = shutil.disk_usage(root).free
+        removed = 0
+        for name in os.listdir(root):
+            path = os.path.join(root, name)
+            if name.startswith("."):
+                continue
+            try:
+                if os.path.isdir(path) and not os.path.islink(path):
+                    shutil.rmtree(path, ignore_errors=True)
+                else:
+                    os.remove(path)
+                removed += 1
+            except OSError as exc:
+                print(f"[boot-clean] skip {path}: {exc}", flush=True)
+        after = shutil.disk_usage(root).free
+        print(
+            f"[boot-clean] removed={removed} entries, "
+            f"free {before // 1048576}MB -> {after // 1048576}MB",
+            flush=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"[boot-clean] error: {type(exc).__name__}: {exc}", flush=True)
+
+
+if os.getenv("SWE_BOOT_CLEAN_WORKSPACES") == "1":
+    _clean_workspaces_at_boot()
+
 if os.getenv("SWE_BOOT_SELFTEST") == "1":
     import threading  # noqa: PLC0415
 
