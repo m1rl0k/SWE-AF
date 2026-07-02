@@ -91,6 +91,46 @@ async def _harness_with_scoped_credentials(*args, env=None, **kwargs):
 app.harness = _harness_with_scoped_credentials
 
 
+def _bedrock_boot_selftest() -> None:
+    """TEMPORARY diagnostic: log env presence and run the bundled Claude Code
+    CLI once at boot, surfacing its real exit code and stderr in the service
+    logs. Enabled only when SWE_BOOT_SELFTEST=1. Remove once the Bedrock
+    rollout is verified.
+    """
+    import subprocess  # noqa: PLC0415
+    try:
+        import claude_agent_sdk  # noqa: PLC0415
+        cli = os.path.join(
+            os.path.dirname(claude_agent_sdk.__file__), "_bundled", "claude"
+        )
+        keys = (
+            "CLAUDE_CODE_USE_BEDROCK", "IS_SANDBOX", "AWS_REGION",
+            "AWS_BEARER_TOKEN_BEDROCK", "ANTHROPIC_DEFAULT_SONNET_MODEL",
+            "ANTHROPIC_DEFAULT_OPUS_MODEL", "ANTHROPIC_DEFAULT_HAIKU_MODEL",
+            "CLAUDE_CODE_OAUTH_TOKEN",
+        )
+        presence = {k: ("set" if os.environ.get(k) else "unset") for k in keys}
+        print(f"[boot-selftest] cli={cli} env={presence}", flush=True)
+        r = subprocess.run(
+            [cli, "-p", "Reply with exactly: BOOT_OK", "--model", "sonnet",
+             "--dangerously-skip-permissions"],
+            capture_output=True, text=True, timeout=180,
+        )
+        print(
+            f"[boot-selftest] exit={r.returncode} "
+            f"stdout={r.stdout[-300:]!r} stderr={r.stderr[-800:]!r}",
+            flush=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        print(f"[boot-selftest] error: {type(exc).__name__}: {exc}", flush=True)
+
+
+if os.getenv("SWE_BOOT_SELFTEST") == "1":
+    import threading  # noqa: PLC0415
+
+    threading.Thread(target=_bedrock_boot_selftest, daemon=True).start()
+
+
 async def _clone_repos(
     cfg: BuildConfig,
     artifacts_dir: str,
