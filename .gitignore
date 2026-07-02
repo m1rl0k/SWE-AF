@@ -50,3 +50,4 @@ build/
 
 # Pipeline output files
 .claude_output_*.json
+/.omc
