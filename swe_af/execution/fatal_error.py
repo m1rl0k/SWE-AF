@@ -38,6 +38,18 @@ _FATAL_PATTERNS: tuple[re.Pattern[str], ...] = tuple(
         # default `-codex` model under ChatGPT-account auth (#82 Gap 3).
         r"not supported when using codex with a chatgpt account",
         r"requires a newer version of codex",
+        # AWS Bedrock failures that retrying cannot fix: missing model access
+        # or IAM denial, model IDs that require an inference profile, invalid
+        # model identifiers, and bad/expired AWS credentials (there is no
+        # credential-refresh mechanism inside the container). Bedrock
+        # throttling is deliberately NOT listed — it's retryable.
+        r"accessdeniedexception",
+        r"don.?t have access to the model",
+        r"on-demand throughput isn.?t supported",
+        r"provided model identifier is invalid",
+        r"unrecognizedclientexception",
+        r"security token.{0,40}(invalid|expired)",
+        r"expiredtokenexception",
     )
 )
 

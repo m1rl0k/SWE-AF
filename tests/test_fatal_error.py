@@ -53,6 +53,13 @@ class TestIsFatalError:
             # Codex model/auth mismatches (#82 Gap 3) — non-retryable.
             "The 'gpt-5.3-codex' model is not supported when using Codex with a ChatGPT account.",
             "The 'gpt-5.5' model requires a newer version of Codex. Please upgrade.",
+            # AWS Bedrock — non-retryable access / credential / model errors.
+            "AccessDeniedException: You don't have access to the model with the specified model ID.",
+            "You don’t have access to the model with the specified model ID.",
+            "ValidationException: Invocation of model ID anthropic.claude-sonnet-4-6 with on-demand throughput isn't supported.",
+            "ValidationException: The provided model identifier is invalid.",
+            "UnrecognizedClientException: The security token included in the request is invalid.",
+            "ExpiredTokenException: The security token included in the request is expired",
         ],
     )
     def test_fatal_patterns_detected(self, message: str) -> None:
@@ -70,6 +77,10 @@ class TestIsFatalError:
             "Product manager failed to produce a valid PRD",
             "",
             "Some random error",
+            # AWS Bedrock throttling / transient errors — retryable, NOT fatal.
+            "ThrottlingException: Too many requests, please wait before trying again.",
+            "ServiceUnavailableException: Bedrock is unable to process your request.",
+            "ModelTimeoutException: The request took too long to process.",
         ],
     )
     def test_transient_errors_not_fatal(self, message: str) -> None:
